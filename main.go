@@ -54,8 +54,10 @@ var locationName *string
 var workersPerBuildBox *int
 var jobNameRequiringAllNodes *string
 var preferredNodeToKeepOnline *string
+var nodeNamePrefix *string
 
 var buildBoxesPool = []string{}
+var buildBoxesJenkinsToGCPNameMap map[string]string
 var httpClient = &http.Client{}
 var service *compute.Service
 
@@ -85,6 +87,7 @@ func main() {
 	jenkinsApiToken = flag.String("jenkinsApiToken", "", "Jenkins api token")
 	jobNameRequiringAllNodes = flag.String("jobNameRequiringAllNodes", "", "Jenkins job name which requires all build nodes enabled")
 	preferredNodeToKeepOnline = flag.String("preferredNodeToKeepOnline", "", "name of the node that should be kept online")
+        nodeNamePrefix =  flag.String("nodeNamePrefix", "", "Common prefix for node names passed")
 	flag.Parse()
 
 	validateFlags()
@@ -95,6 +98,7 @@ func main() {
 	}
 
 	buildBoxesPool = flag.Args()
+        generateGCPNodeNames()
 
 	var err error
 	if *localCreds {
@@ -117,6 +121,18 @@ func main() {
 	}
 }
 
+func generateGCPNodeNames() {
+       buildBoxesJenkinsToGCPNameMap = make(map[string]string)
+       var buildBoxWithPrefix strings.Builder
+       for _, buildBox := range buildBoxesPool {
+               if *nodeNamePrefix != "" {
+                       buildBoxWithPrefix.WriteString(*nodeNamePrefix)
+               }
+               buildBoxWithPrefix.WriteString(buildBox)
+               buildBoxesJenkinsToGCPNameMap[buildBox] = buildBoxWithPrefix.String()
+               buildBoxWithPrefix.Reset()
+       }
+}
 func validateFlags() {
 	valid := true
 	if *gceProjectName == "" {
@@ -214,16 +230,23 @@ func enableNode(buildBox string) bool {
 }
 
 func startCloudBox(buildBox string) {
+        var buildBoxGCP string
+        var ok bool
+        buildBoxGCP, ok = buildBoxesJenkinsToGCPNameMap[buildBox]
+        if ok != true {
+                log.Printf("Failed to find GCP node name\n")
+                return
+        }
 	if isCloudBoxRunning(buildBox) {
 		return
 	}
 
-	_, err := service.Instances.Start(*gceProjectName, *gceZone, buildBox).Do()
+	_, err := service.Instances.Start(*gceProjectName, *gceZone, buildBoxGCP).Do()
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	waitForStatus(buildBox, "RUNNING")
+	waitForStatus(buildBoxGCP, "RUNNING")
 	lastStarted.Lock()
 	lastStarted.m[buildBox] = time.Now()
 	lastStarted.Unlock()
@@ -415,12 +438,19 @@ func launchNodeAgent(buildBox string) {
 }
 
 func stopCloudBox(buildBox string) error {
-	_, err := service.Instances.Stop(*gceProjectName, *gceZone, buildBox).Do()
+        var buildBoxGCP string
+        var ok bool
+        buildBoxGCP, ok = buildBoxesJenkinsToGCPNameMap[buildBox]
+        if ok != true {
+                log.Printf("Failed to find GCP node name\n")
+                return errors.New("Node name map error")
+        }
+	_, err := service.Instances.Stop(*gceProjectName, *gceZone, buildBoxGCP).Do()
 	if err != nil {
 		log.Println(err)
 		return err
 	}
-	waitForStatus(buildBox, "TERMINATED")
+	waitForStatus(buildBoxGCP, "TERMINATED")
 
 	lastStarted.Lock()
 	lastStarted.m[buildBox] = time.Time{}
@@ -438,7 +468,8 @@ func isAgentConnected(buildBox string) bool {
 	content, _ := ioutil.ReadAll(resp.Body)
 
 	s := string(content)
-	if len(s) > 37 && strings.Contains(string(s[len(s)-37:]), "successfully connected and online") {
+        // On newer versions of Jenkins, there are additional logs after log indicating node was successfully connected. Check for that case too. The reason for these extra logs after node is connected is yet to be root caused. Workaround to check for the additional string has been added below.
+        if (len(s) > 37 && strings.Contains(string(s[len(s)-37:]), "successfully connected and online")) || (len(s) > 75 && strings.Contains(string(s[len(s)-75:]), "The Agent is connected, disconnect it before to try to connect it again.")) {
 		return true
 	}
 
@@ -590,7 +621,14 @@ func ensureCloudBoxIsNotRunning(buildBox string) {
 }
 
 func isCloudBoxRunning(buildBox string) bool {
-	i, err := service.Instances.Get(*gceProjectName, *gceZone, buildBox).Do()
+        var buildBoxGCP string
+        var ok bool
+        buildBoxGCP, ok = buildBoxesJenkinsToGCPNameMap[buildBox]
+        if ok != true {
+                log.Printf("Failed to find GCP node name\n")
+                return false
+        }
+	i, err := service.Instances.Get(*gceProjectName, *gceZone, buildBoxGCP).Do()
 	if nil != err {
 		log.Printf("Failed to get instance data: %v\n", err)
 		return false
