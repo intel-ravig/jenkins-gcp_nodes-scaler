@@ -55,6 +55,7 @@ var workersPerBuildBox *int
 var jobNameRequiringAllNodes *string
 var preferredNodeToKeepOnline *string
 var nodeNamePrefix *string
+var labelToSearch *string
 
 var buildBoxesPool = []string{}
 var buildBoxesJenkinsToGCPNameMap map[string]string
@@ -88,6 +89,7 @@ func main() {
 	jobNameRequiringAllNodes = flag.String("jobNameRequiringAllNodes", "", "Jenkins job name which requires all build nodes enabled")
 	preferredNodeToKeepOnline = flag.String("preferredNodeToKeepOnline", "", "name of the node that should be kept online")
         nodeNamePrefix =  flag.String("nodeNamePrefix", "", "Common prefix for node names passed")
+        labelToSearch =  flag.String("labelToSearch", "skx", "Node Label to distinguish win/skx")
 	flag.Parse()
 
 	validateFlags()
@@ -149,6 +151,10 @@ func validateFlags() {
 	}
 	if *jenkinsUsername == "" {
 		log.Println("jenkinsUsername flag should not be empty")
+		valid = false
+	}
+	if !(*labelToSearch == "skx" ||  *labelToSearch == "win") {
+		log.Println("labelToSearch should be skx or win only")
 		valid = false
 	}
 
@@ -551,7 +557,7 @@ func fetchQueueSize() int {
 	counter := 0
 	for _, i := range data.Items {
 		if i.Buildable && !strings.HasPrefix(i.Why, "There are no nodes with the label") {
-		     if (strings.ContainsAny(i.Why, "'skx'")) {
+		     if (strings.ContainsAny(i.Why, labelToSearch)) {
 			counter = counter + 1
 		   }
 		}
