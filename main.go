@@ -153,10 +153,10 @@ func validateFlags() {
 		log.Println("jenkinsUsername flag should not be empty")
 		valid = false
 	}
-//	if !(*labelToSearch == "'skx'" || *labelToSearch == "'win'") {
-//		log.Println("labelToSearch should be skx or win only")
-//		valid = false
-//	}
+	if !(*labelToSearch == "skx" || *labelToSearch == "win") {
+		log.Println("labelToSearch should be skx or win only")
+		valid = false
+	}
 
 	if !valid {
 		os.Exit(1)
@@ -558,7 +558,7 @@ func fetchQueueSize() int {
 	for _, i := range data.Items {
 		if i.Buildable && !strings.HasPrefix(i.Why, "There are no nodes with the label") {
 		     log.Printf("Job's Why statement (api/json): %s\n", i.Why)
-		     if (strings.Contains(i.Why, *labelToSearch)) {
+		     if (strings.Contains(i.Why, *labelToSearch) && strings.Contains(i.Why, "Waiting for next available executor on")) {
 			counter = counter + 1
 		   }
 		}
