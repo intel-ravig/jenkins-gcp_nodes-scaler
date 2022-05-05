@@ -89,7 +89,7 @@ func main() {
 	jobNameRequiringAllNodes = flag.String("jobNameRequiringAllNodes", "", "Jenkins job name which requires all build nodes enabled")
 	preferredNodeToKeepOnline = flag.String("preferredNodeToKeepOnline", "", "name of the node that should be kept online")
         nodeNamePrefix =  flag.String("nodeNamePrefix", "", "Common prefix for node names passed")
-        labelToSearch =  flag.String("labelToSearch", "skx", "Node Label to distinguish win/skx")
+        labelToSearch =  flag.String("labelToSearch", "win", "Node Label to distinguish win/skx")
 	flag.Parse()
 
 	validateFlags()
