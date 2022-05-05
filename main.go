@@ -89,7 +89,7 @@ func main() {
 	jobNameRequiringAllNodes = flag.String("jobNameRequiringAllNodes", "", "Jenkins job name which requires all build nodes enabled")
 	preferredNodeToKeepOnline = flag.String("preferredNodeToKeepOnline", "", "name of the node that should be kept online")
         nodeNamePrefix =  flag.String("nodeNamePrefix", "", "Common prefix for node names passed")
-        labelToSearch =  flag.String("labelToSearch", "'win'", "Node Label to distinguish win/skx")
+        labelToSearch =  flag.String("labelToSearch", "win", "Node Label to distinguish win/skx")
 	flag.Parse()
 
 	validateFlags()
@@ -153,10 +153,10 @@ func validateFlags() {
 		log.Println("jenkinsUsername flag should not be empty")
 		valid = false
 	}
-	if !(*labelToSearch == "'skx'" || *labelToSearch == "'win'") {
-		log.Println("labelToSearch should be skx or win only")
-		valid = false
-	}
+//	if !(*labelToSearch == "'skx'" || *labelToSearch == "'win'") {
+//		log.Println("labelToSearch should be skx or win only")
+//		valid = false
+//	}
 
 	if !valid {
 		os.Exit(1)
@@ -557,8 +557,8 @@ func fetchQueueSize() int {
 	counter := 0
 	for _, i := range data.Items {
 		if i.Buildable && !strings.HasPrefix(i.Why, "There are no nodes with the label") {
+		     log.Printf("Job's Why statement (api/json): %s\n", i.Why)
 		     if (strings.Contains(i.Why, *labelToSearch)) {
-		        log.Printf("Job's Why statement (api/json): %s\n", i.Why)
 			counter = counter + 1
 		   }
 		}
