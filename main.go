@@ -551,7 +551,9 @@ func fetchQueueSize() int {
 	counter := 0
 	for _, i := range data.Items {
 		if i.Buildable && !strings.HasPrefix(i.Why, "There are no nodes with the label") {
+		     if (strings.ContainsAny(i.Why, "'skx'")) {
 			counter = counter + 1
+		   }
 		}
 	}
 
