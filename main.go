@@ -96,7 +96,7 @@ func main() {
 
 	// Force 'lin' to be 'skx' as dictated in Jenkins Job
 	if *osLabel == "lin" {
-		osLabel = "skx"
+		*osLabel = "skx"
 	}
 
 	if len(flag.Args()) == 0 {
