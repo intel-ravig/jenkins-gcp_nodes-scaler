@@ -132,11 +132,14 @@ func generateGCPNodeNames() {
 	buildBoxesJenkinsToGCPNameMap = make(map[string]string)
 	var buildBoxWithPrefix strings.Builder
 	for _, buildBox := range buildBoxesPool {
+		log.Printf("Current buildBox(command line) -> %s \n", buildBox)
 		if *nodeNamePrefix != "" {
 			buildBoxWithPrefix.WriteString(*nodeNamePrefix)
 		}
+		//Change below
 		buildBoxWithPrefix.WriteString(buildBox)
 		buildBoxesJenkinsToGCPNameMap[buildBox] = buildBoxWithPrefix.String()
+		log.Printf("Current GCP Name(%s) \n", buildBoxesJenkinsToGCPNameMap[buildBox])
 		buildBoxWithPrefix.Reset()
 	}
 }
@@ -172,14 +175,14 @@ func autoScaling() {
 	for {
 		queueSize := fetchQueueSize()
 		queueSize = adjustQueueSizeDependingWhetherJobRequiringAllNodesIsRunning(queueSize)
-		//log.Printf("%d jobs waiting to be executed\n", queueSize)
-		if queueSize > 0 {
-			log.Printf("%d jobs waiting to be executed\n", queueSize)
-			enableMoreNodes(queueSize)
-		} else if queueSize == 0 {
-			log.Println("No jobs in the queue")
-			disableUnnecessaryBuildBoxes()
-		}
+		log.Printf("%d jobs waiting to be executed\n", queueSize)
+	//	if queueSize > 0 {
+	//		log.Printf("%d jobs waiting to be executed\n", queueSize)
+	//		enableMoreNodes(queueSize)
+	//	} else if queueSize == 0 {
+	//		log.Println("No jobs in the queue")
+	//		disableUnnecessaryBuildBoxes()
+	//	}
 
 		log.Println("Iteration finished")
 		fmt.Println("")
