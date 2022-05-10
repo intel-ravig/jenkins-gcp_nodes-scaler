@@ -132,10 +132,16 @@ func generateGCPNodeNames() {
 	buildBoxesJenkinsToGCPNameMap = make(map[string]string)
 	gcpShortName := make(map[string]string)
 	// Hard-Coded Values for windows TODO: Make it more dynamic later (hint: use /api/json on Nodes)
+	gcpShortName["win-serv-1"] = "windows-client-1"
+	gcpShortName["win-serv-2"] = "windows-client-2"
 	gcpShortName["win-serv-3"] = "windows-client-3"
 	gcpShortName["win-serv-4"] = "windows-client-4"
 	gcpShortName["win-serv-5"] = "windows-client-5"
 	gcpShortName["win-serv-6"] = "windows-client-6"
+	gcpShortName["win-serv-7"] = "windows-client-7"
+	gcpShortName["win-serv-8"] = "windows-client-8"
+	gcpShortName["win-serv-9"] = "windows-client-9"
+	gcpShortName["win-serv-10"] = "windows-client-10"
 	var buildBoxWithPrefix strings.Builder
 	for _, buildBox := range buildBoxesPool {
 		log.Printf("Current buildBox(command line) -> %s \n", buildBox)
