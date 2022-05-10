@@ -12,7 +12,8 @@ Once a node is online, it's kept alive for at least 10 minutes, since that's the
 The tool assumes:
 - all the boxes have the same number of workers configured
 - working hours are considered to be between 7am and 7pm, Monday to Friday
-- the slave names configured in Jenkins are the same as the node names configured in GCE
+- the slave names configured in Jenkins are the same as the node names configured in GCE for Linux
+- For windows instances, a hard coded map is created from the names of nodes(passed in command line referring to Jenkins name) 
 
 The tool options are:
 ```
@@ -36,6 +37,8 @@ The tool options are:
     	uses the local creds.json as credentials for Google Cloud APIs
   -workersPerBuildBox int
     	number of workers per build box (default 2)
+  -osLabel string
+        Which OS instance to select
 ``` 
 
 ![Jenkins nodes setup](/computer.png)

@@ -93,7 +93,7 @@ func main() {
 	flag.Parse()
 
 	validateFlags()
-
+        // TODO: Factor in that the node is slated offline in Jenkins(use /api/json to get the offline status)
 	// Force 'lin' to be 'skx' as dictated in Jenkins Job
 	if *osLabel == "lin" {
 		*osLabel = "skx"
