@@ -1,0 +1,14 @@
+// create normal go file
+// Language: go
+// Path: test.go
+package main
+
+import "strconv"
+
+func main() {
+	// print hello world
+	for i := 1; i <= 4; i++ {
+		println("win-serv-highmem-" + strconv.Itoa(i))
+	}
+
+}
