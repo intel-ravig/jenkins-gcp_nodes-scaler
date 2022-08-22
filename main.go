@@ -3,22 +3,24 @@ package main
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"encoding/json"
 	"errors"
 	"flag"
-	"golang.org/x/net/context"
-	"golang.org/x/oauth2/google"
-	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/option"
-	"google.golang.org/api/transport"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
+
+	"golang.org/x/net/context"
+	"golang.org/x/oauth2/google"
+	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/option"
+	"google.golang.org/api/transport"
 )
 
 type JenkinsQueue struct {
@@ -129,6 +131,10 @@ func main() {
 }
 
 func generateGCPNodeNames() {
+	/*
+		this function creates a map of build box names to GCP node names
+		format: buildBoxesJenkinsToGCPNameMap["buildBoxName"] = "gcpNodeName"
+	*/
 	buildBoxesJenkinsToGCPNameMap = make(map[string]string)
 	var buildBoxWithPrefix strings.Builder
 	for _, buildBox := range buildBoxesPool {
@@ -139,6 +145,17 @@ func generateGCPNodeNames() {
 		buildBoxesJenkinsToGCPNameMap[buildBox] = buildBoxWithPrefix.String()
 		buildBoxWithPrefix.Reset()
 	}
+
+	//! Temporary Highmem fix:
+	// check if win-serv-highmem-x is in buildBoxesJenkinsToGCPNameMap where x is a number 1-4
+	// if it is, then set the corresponding buildBoxesJenkinsToGCPNameMap["win-serv-highmem-x"] to *nodeNamePrefix + "win-client-highmem-x"
+	for i := 1; i <= 4; i++ {
+		if _, ok := buildBoxesJenkinsToGCPNameMap["win-serv-highmem-"+strconv.Itoa(i)]; ok {
+			buildBoxesJenkinsToGCPNameMap["win-serv-highmem-"+strconv.Itoa(i)] = *nodeNamePrefix + "win-client-highmem-" + strconv.Itoa(i)
+		}
+	}
+	//! end of temporary fix
+
 }
 func validateFlags() {
 	valid := true
@@ -263,8 +280,10 @@ func startCloudBox(buildBox string) {
 }
 
 func calculateNumberOfNodesToEnable(queueSize int) int {
+
 	mod := 0
 	if queueSize%(*workersPerBuildBox) != 0 {
+		// if queueSize is not divisible by workersPerBuildBox, then add 1 to the number of build boxes needed
 		mod = 1
 	}
 
@@ -563,7 +582,7 @@ func fetchQueueSize() int {
 	for _, i := range data.Items {
 		if i.Buildable && !strings.HasPrefix(i.Why, "There are no nodes with the label") {
 			log.Printf("Job's Why statement (api/json): %s\n", i.Why)
-			if strings.Contains(i.Why, *osLabel) && (strings.Contains(i.Why, "Waiting for next available executor on") || strings.Contains(i.Why, "All nodes of label"))  {
+			if strings.Contains(i.Why, *osLabel) && (strings.Contains(i.Why, "Waiting for next available executor on") || strings.Contains(i.Why, "All nodes of label")) {
 				counter = counter + 1
 			}
 		}
