@@ -151,7 +151,7 @@ func generateGCPNodeNames() {
 	// if it is, then set the corresponding buildBoxesJenkinsToGCPNameMap["win-serv-highmem-x"] to *nodeNamePrefix + "win-client-highmem-x"
 	for i := 1; i <= 4; i++ {
 		if _, ok := buildBoxesJenkinsToGCPNameMap["win-serv-highmem-"+strconv.Itoa(i)]; ok {
-			buildBoxesJenkinsToGCPNameMap["win-serv-highmem-"+strconv.Itoa(i)] = *nodeNamePrefix + "win-client-highmem-" + strconv.Itoa(i)
+			buildBoxesJenkinsToGCPNameMap["win-serv-highmem-"+strconv.Itoa(i)] = *nodeNamePrefix + "windows-client-highmem-" + strconv.Itoa(i)
 		}
 	}
 	//! end of temporary fix
