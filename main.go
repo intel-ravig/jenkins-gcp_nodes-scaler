@@ -95,8 +95,8 @@ func main() {
 	validateFlags()
 
 	// Force 'lin' to be 'skx' as dictated in Jenkins Job
-	if *osJobType == "lin" {
-		osJobType = "skx"
+	if *osLabel == "lin" {
+		*osLabel = "skx"
 	}
 
 	if len(flag.Args()) == 0 {
@@ -158,8 +158,8 @@ func validateFlags() {
 		log.Println("jenkinsUsername flag should not be empty")
 		valid = false
 	}
-	if !(*osJobType == "lin" || *osJobType == "win") {
-		log.Println("osJobType should be lin or win only")
+	if !(*osLabel == "lin" || *osLabel == "win") {
+		log.Println("osLabel should be lin or win only")
 		valid = false
 	}
 
@@ -172,14 +172,14 @@ func autoScaling() {
 	for {
 		queueSize := fetchQueueSize()
 		queueSize = adjustQueueSizeDependingWhetherJobRequiringAllNodesIsRunning(queueSize)
-		log.Printf("%d jobs waiting to be executed\n", queueSize)
-		//if queueSize > 0 {
-		//	log.Printf("%d jobs waiting to be executed\n", queueSize)
-		//	enableMoreNodes(queueSize)
-		//} else if queueSize == 0 {
-		//	log.Println("No jobs in the queue")
-		//	disableUnnecessaryBuildBoxes()
-		//}
+		//log.Printf("%d jobs waiting to be executed\n", queueSize)
+		if queueSize > 0 {
+			log.Printf("%d jobs waiting to be executed\n", queueSize)
+			enableMoreNodes(queueSize)
+		} else if queueSize == 0 {
+			log.Println("No jobs in the queue")
+			disableUnnecessaryBuildBoxes()
+		}
 
 		log.Println("Iteration finished")
 		fmt.Println("")
@@ -563,7 +563,7 @@ func fetchQueueSize() int {
 	for _, i := range data.Items {
 		if i.Buildable && !strings.HasPrefix(i.Why, "There are no nodes with the label") {
 			log.Printf("Job's Why statement (api/json): %s\n", i.Why)
-			if strings.Contains(i.Why, *osJobType) && strings.Contains(i.Why, "Waiting for next available executor on") {
+			if strings.Contains(i.Why, *osLabel) && (strings.Contains(i.Why, "Waiting for next available executor on") || strings.Contains(i.Why, "All nodes of label"))  {
 				counter = counter + 1
 			}
 		}
