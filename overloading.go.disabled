@@ -1,0 +1,57 @@
+func autoScaling() {
+	for {
+		queueSizeLinux := fetchQueueSize("lin")   //!
+		queueSizeWindows := fetchQueueSize("win") //!
+
+		queueSizeLinux = adjustQueueSizeDependingWhetherJobRequiringAllNodesIsRunning(queueSize, "lin")   //!
+		queueSizeWindows = adjustQueueSizeDependingWhetherJobRequiringAllNodesIsRunning(queueSize, "win") //!
+
+		queueSize = queueSizeLinux + queueSizeWindows
+		//log.Printf("%d jobs waiting to be executed\n", queueSize)
+		if queueSizeLinux > 0 {
+			log.Printf("%d jobs waiting to be executed in linux machines\n", queueSizeLinux)
+			enableMoreNodes(queueSizeLinux, "lin") //!
+		} 
+		if queueSizeWindows > 0 {
+			log.Printf("%d jobs waiting to be executed in windows machines\n", queueSizeWindows)
+			enableMoreNodes(queueSizeWindows, "win") //!
+		}
+		else if queueSize == 0 {
+			log.Println("No jobs in the queue")
+			disableUnnecessaryBuildBoxes()
+		}
+
+		log.Println("Iteration finished")
+		fmt.Println("")
+		time.Sleep(time.Second * 8)
+	}
+}
+
+func fetchQueueSize(osType string) int {
+	resp, err := jenkinsRequest("GET", "/queue/api/json")
+	defer closeResponseBody(resp)
+	if err != nil {
+		log.Printf("Error deserialising Jenkins queue API call: %s\n", err.Error())
+		return 0
+	}
+
+	decoder := json.NewDecoder(resp.Body)
+	var data JenkinsQueue
+	err = decoder.Decode(&data)
+	if err != nil {
+		log.Printf("Error deserialising Jenkins queue API call: %s\n", err.Error())
+		return 0
+	}
+	counter := 0
+	for _, i := range data.Items {
+		if i.Buildable && !strings.HasPrefix(i.Why, "There are no nodes with the label") {
+			log.Printf("Job's Why statement (api/json): %s\n", i.Why)
+			if strings.Contains(i.Why, osType) && (strings.Contains(i.Why, "Waiting for next available executor on") || strings.Contains(i.Why, "All nodes of label"))  {
+				counter = counter + 1
+			}
+		}
+	}
+
+	return counter
+}
+
