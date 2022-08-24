@@ -580,7 +580,7 @@ func fetchQueueSize() int {
 	}
 	counter := 0
 	for _, i := range data.Items {
-		if i.Buildable && !strings.Contains(i.Why, "doesn't have label") {
+		if i.Buildable && !strings.HasPrefix(i.Why, "there are no nodes with the label") {
 			log.Printf("Job's Why statement (api/json): %s\n", i.Why)
 			if strings.Contains(i.Why, *osLabel) && (strings.Contains(i.Why, "Waiting for next available executor on") || strings.Contains(i.Why, "All nodes of label")) {
 				counter = counter + 1
