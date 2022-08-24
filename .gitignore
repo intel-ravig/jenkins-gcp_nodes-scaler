@@ -8,3 +8,5 @@ vendor/*
 .idea/
 creds.json
 build/
+test2.go
+test3.go
