@@ -126,6 +126,14 @@ func main() {
 	buildBoxesPool = flag.Args()
 	generateGCPNodeNames()
 
+	// print buildBoxesJenkinsToGCPNameMap
+	fmt.println("buildBoxesJenkinsToGCPNameMap:")
+	fmt.Print(buildBoxesJenkinsToGCPNameMap)
+
+	// print buildBoxesLabelToJenkinsNameMap
+	fmt.println("buildBoxesLabelToJenkinsNameMap:")
+	fmt.Print(buildBoxesLabelToJenkinsNameMap)
+
 	var err error
 	if *localCreds {
 		service, err = getServiceWithCredsFile()
