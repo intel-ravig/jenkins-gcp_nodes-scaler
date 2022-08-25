@@ -127,12 +127,12 @@ func main() {
 	generateGCPNodeNames()
 
 	// print buildBoxesJenkinsToGCPNameMap
-	fmt.println("buildBoxesJenkinsToGCPNameMap:")
-	fmt.Print(buildBoxesJenkinsToGCPNameMap)
+	fmt.Println("buildBoxesJenkinsToGCPNameMap:")
+	fmt.Println(buildBoxesJenkinsToGCPNameMap)
 
 	// print buildBoxesLabelToJenkinsNameMap
-	fmt.println("buildBoxesLabelToJenkinsNameMap:")
-	fmt.Print(buildBoxesLabelToJenkinsNameMap)
+	fmt.Println("buildBoxesLabelToJenkinsNameMap:")
+	fmt.Println(buildBoxesLabelToJenkinsNameMap)
 
 	var err error
 	if *localCreds {
