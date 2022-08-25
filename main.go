@@ -581,7 +581,7 @@ func adjustQueueSizeDependingWhetherJobRequiringAllNodesIsRunning(queueSize int,
 	return queueSize
 }
 
-func fetchQueueSizeForLabel(label string) int {
+func fetchQueueSize(label string) int {
 	resp, err := jenkinsRequest("GET", "/queue/api/json")
 	defer closeResponseBody(resp)
 	if err != nil {
