@@ -175,7 +175,7 @@ func generateGCPNodeNames() {
 	buildBoxesJenkinsToGCPNameMap = make(map[string]string)
 
 	for i := 0; i <= len(buildBoxesPool)-1; i++ {
-		buildBoxesJenkinsToGCPNameMap[buildBoxesPool[i]] = gcpBoxesPool[i]
+		buildBoxesJenkinsToGCPNameMap[boxLabels[i]] = gcpBoxesPool[i]
 	}
 	// print made it here!
 	fmt.Println("MADE IT HERE")
