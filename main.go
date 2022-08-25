@@ -225,8 +225,8 @@ func enableMoreNodes(queueSize int, label string) {
 	boxesNeeded := calculateNumberOfNodesToEnable(queueSize)
 	log.Println("Checking if any box is offline")
 	var wg sync.WaitGroup
-	buildBoxesJenkinsToGCPNameMap[label] = shuffle(buildBoxesLabelToJenkinsNameMap[label])
-	for _, buildBox := range buildBoxesJenkinsToGCPNameMap[label] {
+	// buildBoxesJenkinsToGCPNameMap[label] = shuffle(buildBoxesLabelToJenkinsNameMap[label])
+	for _, buildBox := range buildBoxesLabelToJenkinsNameMap[label] {
 		if isNodeOffline(buildBox) {
 			wg.Add(1)
 			go func(b string) {
