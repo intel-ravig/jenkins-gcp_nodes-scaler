@@ -175,14 +175,15 @@ func generateGCPNodeNames() {
 	buildBoxesJenkinsToGCPNameMap = make(map[string]string)
 
 	for i := 0; i <= len(buildBoxesPool)-1; i++ {
-		buildBoxesJenkinsToGCPNameMap[boxLabels[i]] = gcpBoxesPool[i]
+		buildBoxesJenkinsToGCPNameMap[buildBoxesPool[i]] = gcpBoxesPool[i]
 	}
-
+	// print made it here!
+	fmt.Println("MADE IT HERE")
 	buildBoxesLabelToJenkinsNameMap := make(map[string][]string)
 	for i := 0; i <= len(boxLabels)-1; i++ {
 		buildBoxesLabelToJenkinsNameMap[boxLabels[i]] = append(buildBoxesLabelToJenkinsNameMap[boxLabels[i]], buildBoxesPool[i])
 	}
-
+	fmt.Println("ALSO MADE IT HER 23E2 ")
 }
 
 func validateFlags() {
