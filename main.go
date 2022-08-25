@@ -123,13 +123,18 @@ func main() {
 		*osLabel = "skx"
 	}
 
-	if len(flag.Args()) == 0 {
-		log.Println("At least one node name has to be specified")
-		os.Exit(1)
-	}
-
-	buildBoxesPool = flag.Args()
 	generateGCPNodeNames()
+
+	// print buildBoxesJenkinsToGCPNameMap
+	fmt.Println("buildBoxesJenkinsToGCPNameMap:")
+	fmt.Println(buildBoxesJenkinsToGCPNameMap)
+
+	// print buildBoxesLabelToJenkinsNameMap
+	fmt.Println("buildBoxesLabelToJenkinsNameMap:")
+	fmt.Println(buildBoxesLabelToJenkinsNameMap)
+	for key, value := range buildBoxesLabelToJenkinsNameMap {
+		fmt.Println(key, ":", value)
+	}
 
 	var err error
 	if *localCreds {
@@ -165,10 +170,15 @@ func generateGCPNodeNames() {
 	for i := 0; i <= len(buildBoxesPool)-1; i++ {
 		buildBoxesJenkinsToGCPNameMap[buildBoxesPool[i]] = gcpBoxesPool[i]
 	}
+	fmt.Println("jenkins boxes: ", buildBoxesPool)
+	fmt.Println("gcp boxes: ", gcpBoxesPool)
+	fmt.Println("box labels: ", boxLabels)
 
-	buildBoxesLabelToJenkinsNameMap := make(map[string][]string)
+	buildBoxesLabelToJenkinsNameMap = make(map[string][]string)
 	for i := 0; i <= len(boxLabels)-1; i++ {
 		buildBoxesLabelToJenkinsNameMap[boxLabels[i]] = append(buildBoxesLabelToJenkinsNameMap[boxLabels[i]], buildBoxesPool[i])
+		// fmt.Println(buildBoxesLabelToJenkinsNameMap)
+
 	}
 }
 
@@ -198,7 +208,8 @@ func validateFlags() {
 
 func autoScaling() {
 	for key, value := range buildBoxesLabelToJenkinsNameMap {
-		// value = ["buildBoxName1", "buildBoxName2", ...] (slice of Jenkins build box names), key = label
+		// value = ["buildBoxName1", "buildBoxName2", ...] (slice of Jenkins build box names),
+		// key = label of build box
 		fmt.Println(key, ":", value)
 		for {
 			queueSize := fetchQueueSize(key)
@@ -210,7 +221,7 @@ func autoScaling() {
 				enableMoreNodes(queueSize, key)
 			} else if queueSize == 0 {
 				log.Println("No jobs in the queue")
-				disableUnnecessaryBuildBoxes()
+				disableUnnecessaryBuildBoxes(key)
 			}
 
 			log.Println("Iteration finished")
@@ -308,7 +319,7 @@ func calculateNumberOfNodesToEnable(queueSize int) int {
 	return (queueSize / *workersPerBuildBox) + mod
 }
 
-func disableUnnecessaryBuildBoxes() {
+func disableUnnecessaryBuildBoxes(label string) {
 	var buildBoxToKeepOnline string
 	other := "box"
 	if isWorkingHour() {
@@ -318,7 +329,7 @@ func disableUnnecessaryBuildBoxes() {
 
 	log.Printf("Checking if any %s is enabled and idle", other)
 	var wg sync.WaitGroup
-	for _, buildBox := range buildBoxesPool {
+	for _, buildBox := range buildBoxesLabelToJenkinsNameMap[label] {
 		if buildBoxToKeepOnline != buildBox {
 			wg.Add(1)
 			go func(b string) {
@@ -581,7 +592,7 @@ func adjustQueueSizeDependingWhetherJobRequiringAllNodesIsRunning(queueSize int,
 	return queueSize
 }
 
-func fetchQueueSizeForLabel(label string) int {
+func fetchQueueSize(label string) int {
 	resp, err := jenkinsRequest("GET", "/queue/api/json")
 	defer closeResponseBody(resp)
 	if err != nil {
