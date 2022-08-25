@@ -135,9 +135,6 @@ func main() {
 	for key, value := range buildBoxesLabelToJenkinsNameMap {
 		fmt.Println(key, ":", value)
 	}
-	// print length of buildBoxesLabelToJenkinsNameMap
-	fmt.Println("buildBoxesLabelToJenkinsNameMap length:")
-	fmt.Println(len(buildBoxesLabelToJenkinsNameMap))
 
 	var err error
 	if *localCreds {
@@ -177,14 +174,10 @@ func generateGCPNodeNames() {
 	fmt.Println("gcp boxes: ", gcpBoxesPool)
 	fmt.Println("box labels: ", boxLabels)
 
-	buildBoxesLabelToJenkinsNameMap := make(map[string][]string)
+	buildBoxesLabelToJenkinsNameMap = make(map[string][]string)
 	for i := 0; i <= len(boxLabels)-1; i++ {
-		fmt.Println("inside the for loop!")
-		fmt.Println("boxLabels[i]: ", boxLabels[i])
-		fmt.Println("buildBoxesPool[i]: ", buildBoxesPool[i])
-
 		buildBoxesLabelToJenkinsNameMap[boxLabels[i]] = append(buildBoxesLabelToJenkinsNameMap[boxLabels[i]], buildBoxesPool[i])
-		fmt.Println(buildBoxesLabelToJenkinsNameMap)
+		// fmt.Println(buildBoxesLabelToJenkinsNameMap)
 
 	}
 }
