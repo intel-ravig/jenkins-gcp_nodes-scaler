@@ -208,7 +208,8 @@ func validateFlags() {
 
 func autoScaling() {
 	for key, value := range buildBoxesLabelToJenkinsNameMap {
-		// value = ["buildBoxName1", "buildBoxName2", ...] (slice of Jenkins build box names), key = label
+		// value = ["buildBoxName1", "buildBoxName2", ...] (slice of Jenkins build box names),
+		// key = label of build box
 		fmt.Println(key, ":", value)
 		for {
 			queueSize := fetchQueueSize(key)
@@ -220,7 +221,7 @@ func autoScaling() {
 				enableMoreNodes(queueSize, key)
 			} else if queueSize == 0 {
 				log.Println("No jobs in the queue")
-				disableUnnecessaryBuildBoxes()
+				disableUnnecessaryBuildBoxes(key)
 			}
 
 			log.Println("Iteration finished")
@@ -318,7 +319,7 @@ func calculateNumberOfNodesToEnable(queueSize int) int {
 	return (queueSize / *workersPerBuildBox) + mod
 }
 
-func disableUnnecessaryBuildBoxes() {
+func disableUnnecessaryBuildBoxes(label string) {
 	var buildBoxToKeepOnline string
 	other := "box"
 	if isWorkingHour() {
@@ -328,7 +329,7 @@ func disableUnnecessaryBuildBoxes() {
 
 	log.Printf("Checking if any %s is enabled and idle", other)
 	var wg sync.WaitGroup
-	for _, buildBox := range buildBoxesPool {
+	for _, buildBox := range buildBoxesLabelToJenkinsNameMap[label] {
 		if buildBoxToKeepOnline != buildBox {
 			wg.Add(1)
 			go func(b string) {
