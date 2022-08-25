@@ -201,12 +201,13 @@ func autoScaling() {
 		// value = ["buildBoxName1", "buildBoxName2", ...] (slice of Jenkins build box names), key = label
 		fmt.Println(key, ":", value)
 		for {
-			queueSize := fetchQueueSize(key)                                                         /
-			queueSize = adjustQueueSizeDependingWhetherJobRequiringAllNodesIsRunning(queueSize, key) 
-			//log.Printf("%d jobs waiting to be executed\n", queueSize)
+			queueSize := fetchQueueSize(key)
+			queueSize = adjustQueueSizeDependingWhetherJobRequiringAllNodesIsRunning(queueSize, key)
+
+			// !log.Printf("%d jobs waiting to be executed\n", queueSize)
 			if queueSize > 0 {
 				log.Printf("%d jobs waiting to be executed\n", queueSize)
-				enableMoreNodes(queueSize, key) //! overload
+				enableMoreNodes(queueSize, key)
 			} else if queueSize == 0 {
 				log.Println("No jobs in the queue")
 				disableUnnecessaryBuildBoxes()
@@ -219,8 +220,6 @@ func autoScaling() {
 	}
 
 }
-
-
 
 func enableMoreNodes(queueSize int, label string) {
 	boxesNeeded := calculateNumberOfNodesToEnable(queueSize)
@@ -245,7 +244,6 @@ func enableMoreNodes(queueSize int, label string) {
 	wg.Wait()
 	log.Println("No more build boxes available to start")
 }
-
 
 func shuffle(slice []string) []string {
 	for i := range slice {
