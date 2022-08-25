@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"strconv"
 	"time"
 
 	"encoding/json"
@@ -22,6 +21,20 @@ import (
 	"google.golang.org/api/option"
 	"google.golang.org/api/transport"
 )
+
+type stringSlice []string
+
+func (i *stringSlice) String() string {
+	// this is the string representation of the flag's value, part of the flag.Value interface
+	return fmt.Sprintf("%d", *i)
+}
+
+func (i *stringSlice) Set(value string) error {
+	// this is the function that is called when the flag is parsed, part of the flag.Value interface
+	fmt.Printf("%s", value)
+	*i = append(*i, value)
+	return nil
+}
 
 type JenkinsQueue struct {
 	Items []struct {
@@ -59,10 +72,14 @@ var preferredNodeToKeepOnline *string
 var nodeNamePrefix *string
 var osLabel *string
 
-var buildBoxesPool = []string{}
-var buildBoxesJenkinsToGCPNameMap map[string]string
 var httpClient = &http.Client{}
 var service *compute.Service
+
+var buildBoxesPool stringSlice
+var gcpBoxesPool stringSlice
+var boxLabels stringSlice
+var buildBoxesJenkinsToGCPNameMap map[string]string
+var buildBoxesLabelToJenkinsNameMap map[string][]string
 
 var lastSeenBuildNumber int
 
@@ -92,6 +109,11 @@ func main() {
 	preferredNodeToKeepOnline = flag.String("preferredNodeToKeepOnline", "", "name of the node that should be kept online")
 	nodeNamePrefix = flag.String("nodeNamePrefix", "", "Common prefix for node names passed")
 	osLabel = flag.String("osLabel", "win", "OS Label to distinguish which OS is running - win/lin")
+
+	flag.Var(&buildBoxesPool, "jenkins", "jenkins boxes")
+	flag.Var(&gcpBoxesPool, "gcp", "gcp boxes")
+	flag.Var(&boxLabels, "labels", "box labels")
+
 	flag.Parse()
 
 	validateFlags()
@@ -134,29 +156,22 @@ func generateGCPNodeNames() {
 	/*
 		this function creates a map of build box names to GCP node names
 		format: buildBoxesJenkinsToGCPNameMap["buildBoxName"] = "gcpNodeName"
+
+		It also generates the map of labels to Jenkins build box names
+		in the form: boxLabels["label"] = ["buildBoxName1", "buildBoxName2", ...]
 	*/
 	buildBoxesJenkinsToGCPNameMap = make(map[string]string)
-	var buildBoxWithPrefix strings.Builder
-	for _, buildBox := range buildBoxesPool {
-		if *nodeNamePrefix != "" {
-			buildBoxWithPrefix.WriteString(*nodeNamePrefix)
-		}
-		buildBoxWithPrefix.WriteString(buildBox)
-		buildBoxesJenkinsToGCPNameMap[buildBox] = buildBoxWithPrefix.String()
-		buildBoxWithPrefix.Reset()
+
+	for i := 0; i <= len(buildBoxesPool)-1; i++ {
+		buildBoxesJenkinsToGCPNameMap[buildBoxesPool[i]] = gcpBoxesPool[i]
 	}
 
-	//! Temporary Highmem fix:
-	// check if win-serv-highmem-x is in buildBoxesJenkinsToGCPNameMap where x is a number 1-4
-	// if it is, then set the corresponding buildBoxesJenkinsToGCPNameMap["win-serv-highmem-x"] to *nodeNamePrefix + "win-client-highmem-x"
-	for i := 1; i <= 4; i++ {
-		if _, ok := buildBoxesJenkinsToGCPNameMap["win-serv-highmem-"+strconv.Itoa(i)]; ok {
-			buildBoxesJenkinsToGCPNameMap["win-serv-highmem-"+strconv.Itoa(i)] = *nodeNamePrefix + "windows-client-highmem-" + strconv.Itoa(i)
-		}
+	buildBoxesLabelToJenkinsNameMap := make(map[string][]string)
+	for i := 0; i <= len(boxLabels)-1; i++ {
+		buildBoxesLabelToJenkinsNameMap[boxLabels[i]] = append(buildBoxesLabelToJenkinsNameMap[boxLabels[i]], buildBoxesPool[i])
 	}
-	//! end of temporary fix
-
 }
+
 func validateFlags() {
 	valid := true
 	if *gceProjectName == "" {
@@ -175,10 +190,6 @@ func validateFlags() {
 		log.Println("jenkinsUsername flag should not be empty")
 		valid = false
 	}
-	if !(*osLabel == "lin" || *osLabel == "win") {
-		log.Println("osLabel should be lin or win only")
-		valid = false
-	}
 
 	if !valid {
 		os.Exit(1)
@@ -186,30 +197,37 @@ func validateFlags() {
 }
 
 func autoScaling() {
-	for {
-		queueSize := fetchQueueSize()
-		queueSize = adjustQueueSizeDependingWhetherJobRequiringAllNodesIsRunning(queueSize)
-		//log.Printf("%d jobs waiting to be executed\n", queueSize)
-		if queueSize > 0 {
-			log.Printf("%d jobs waiting to be executed\n", queueSize)
-			enableMoreNodes(queueSize)
-		} else if queueSize == 0 {
-			log.Println("No jobs in the queue")
-			disableUnnecessaryBuildBoxes()
-		}
+	for key, value := range buildBoxesLabelToJenkinsNameMap {
+		// value = ["buildBoxName1", "buildBoxName2", ...] (slice of Jenkins build box names), key = label
+		fmt.Println(key, ":", value)
+		for {
+			queueSize := fetchQueueSize(key)                                                         /
+			queueSize = adjustQueueSizeDependingWhetherJobRequiringAllNodesIsRunning(queueSize, key) 
+			//log.Printf("%d jobs waiting to be executed\n", queueSize)
+			if queueSize > 0 {
+				log.Printf("%d jobs waiting to be executed\n", queueSize)
+				enableMoreNodes(queueSize, key) //! overload
+			} else if queueSize == 0 {
+				log.Println("No jobs in the queue")
+				disableUnnecessaryBuildBoxes()
+			}
 
-		log.Println("Iteration finished")
-		fmt.Println("")
-		time.Sleep(time.Second * 8)
+			log.Println("Iteration finished")
+			fmt.Println("")
+			time.Sleep(time.Second * 8)
+		}
 	}
+
 }
 
-func enableMoreNodes(queueSize int) {
+
+
+func enableMoreNodes(queueSize int, label string) {
 	boxesNeeded := calculateNumberOfNodesToEnable(queueSize)
 	log.Println("Checking if any box is offline")
 	var wg sync.WaitGroup
-	buildBoxesPool = shuffle(buildBoxesPool)
-	for _, buildBox := range buildBoxesPool {
+	buildBoxesJenkinsToGCPNameMap[label] = shuffle(buildBoxesLabelToJenkinsNameMap[label])
+	for _, buildBox := range buildBoxesJenkinsToGCPNameMap[label] {
 		if isNodeOffline(buildBox) {
 			wg.Add(1)
 			go func(b string) {
@@ -227,6 +245,7 @@ func enableMoreNodes(queueSize int) {
 	wg.Wait()
 	log.Println("No more build boxes available to start")
 }
+
 
 func shuffle(slice []string) []string {
 	for i := range slice {
@@ -538,7 +557,7 @@ func fetchNodeInfo(buildBox string) JenkinsBuildBoxInfo {
 	return data
 }
 
-func adjustQueueSizeDependingWhetherJobRequiringAllNodesIsRunning(queueSize int) int {
+func adjustQueueSizeDependingWhetherJobRequiringAllNodesIsRunning(queueSize int, label string) int {
 	if *jobNameRequiringAllNodes == "" {
 		return queueSize
 	}
@@ -557,13 +576,13 @@ func adjustQueueSizeDependingWhetherJobRequiringAllNodesIsRunning(queueSize int)
 		lastSeenBuildNumber = data.NextBuildNumber
 
 		log.Printf("Detected %s job, enable the whole pool\n", *jobNameRequiringAllNodes)
-		return *workersPerBuildBox * len(buildBoxesPool)
+		return *workersPerBuildBox * len(buildBoxesLabelToJenkinsNameMap[label])
 	}
 
 	return queueSize
 }
 
-func fetchQueueSize() int {
+func fetchQueueSizeForLabel(label string) int {
 	resp, err := jenkinsRequest("GET", "/queue/api/json")
 	defer closeResponseBody(resp)
 	if err != nil {
@@ -580,9 +599,9 @@ func fetchQueueSize() int {
 	}
 	counter := 0
 	for _, i := range data.Items {
-		if i.Buildable && !strings.Contains(i.Why, "doesn't have label") {
+		if i.Buildable && !strings.HasPrefix(i.Why, "there are no nodes with the label") {
 			log.Printf("Job's Why statement (api/json): %s\n", i.Why)
-			if strings.Contains(i.Why, *osLabel) && (strings.Contains(i.Why, "Waiting for next available executor on") || strings.Contains(i.Why, "All nodes of label")) {
+			if strings.Contains(i.Why, label) && (strings.Contains(i.Why, "Waiting for next available executor on") || strings.Contains(i.Why, "All nodes of label")) {
 				counter = counter + 1
 			}
 		}
