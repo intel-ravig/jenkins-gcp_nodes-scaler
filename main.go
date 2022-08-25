@@ -223,6 +223,7 @@ func enableMoreNodes(queueSize int) {
 			wg.Wait()
 			return
 		}
+
 	}
 	wg.Wait()
 	log.Println("No more build boxes available to start")
