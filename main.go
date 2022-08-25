@@ -131,8 +131,14 @@ func main() {
 
 	// print buildBoxesLabelToJenkinsNameMap
 	fmt.Println("buildBoxesLabelToJenkinsNameMap:")
-	fmt.Println(buildBoxesLabelToJenkinsNameMap)
 
+	fmt.Println("jenkins boxes: ", buildBoxesPool)
+	fmt.Println("gcp boxes: ", gcpBoxesPool)
+	fmt.Println("box labels: ", boxLabels)
+
+	for key, value := range buildBoxesLabelToJenkinsNameMap {
+		fmt.Println(key, ":", value)
+	}
 	var err error
 	if *localCreds {
 		service, err = getServiceWithCredsFile()
