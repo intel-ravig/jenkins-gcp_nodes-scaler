@@ -139,10 +139,6 @@ func main() {
 	fmt.Println("buildBoxesLabelToJenkinsNameMap length:")
 	fmt.Println(len(buildBoxesLabelToJenkinsNameMap))
 
-	fmt.Println("jenkins boxes: ", buildBoxesPool)
-	fmt.Println("gcp boxes: ", gcpBoxesPool)
-	fmt.Println("box labels: ", boxLabels)
-
 	var err error
 	if *localCreds {
 		service, err = getServiceWithCredsFile()
@@ -177,13 +173,20 @@ func generateGCPNodeNames() {
 	for i := 0; i <= len(buildBoxesPool)-1; i++ {
 		buildBoxesJenkinsToGCPNameMap[buildBoxesPool[i]] = gcpBoxesPool[i]
 	}
-	// print made it here!
-	fmt.Println("MADE IT HERE")
+	fmt.Println("jenkins boxes: ", buildBoxesPool)
+	fmt.Println("gcp boxes: ", gcpBoxesPool)
+	fmt.Println("box labels: ", boxLabels)
+
 	buildBoxesLabelToJenkinsNameMap := make(map[string][]string)
 	for i := 0; i <= len(boxLabels)-1; i++ {
+		fmt.Println("inside the for loop!")
+		fmt.Println("boxLabels[i]: ", boxLabels[i])
+		fmt.Println("buildBoxesPool[i]: ", buildBoxesPool[i])
+
 		buildBoxesLabelToJenkinsNameMap[boxLabels[i]] = append(buildBoxesLabelToJenkinsNameMap[boxLabels[i]], buildBoxesPool[i])
+		fmt.Println(buildBoxesLabelToJenkinsNameMap)
+
 	}
-	fmt.Println("ALSO MADE IT HER 23E2 ")
 }
 
 func validateFlags() {
