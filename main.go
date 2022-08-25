@@ -123,11 +123,6 @@ func main() {
 		*osLabel = "skx"
 	}
 
-	if len(flag.Args()) == 0 {
-		log.Println("At least one node name has to be specified")
-		os.Exit(1)
-	}
-
 	buildBoxesPool = flag.Args()
 	generateGCPNodeNames()
 
