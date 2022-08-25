@@ -118,6 +118,9 @@ func main() {
 
 	validateFlags()
 
+	// print "made it past the flags!" with fmt
+	fmt.Println("made it past the flags!")
+
 	// Force 'lin' to be 'skx' as dictated in Jenkins Job
 	if *osLabel == "lin" {
 		*osLabel = "skx"
