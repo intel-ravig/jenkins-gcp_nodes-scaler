@@ -183,6 +183,7 @@ func generateGCPNodeNames() {
 	for i := 0; i <= len(boxLabels)-1; i++ {
 		buildBoxesLabelToJenkinsNameMap[boxLabels[i]] = append(buildBoxesLabelToJenkinsNameMap[boxLabels[i]], buildBoxesPool[i])
 	}
+	fmt.Println("ALSO MADE IT HER 23E2 ")
 }
 
 func validateFlags() {
