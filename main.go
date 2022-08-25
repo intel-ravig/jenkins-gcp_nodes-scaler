@@ -123,8 +123,6 @@ func main() {
 		*osLabel = "skx"
 	}
 
-	// print "made it past the flags!" with fmt
-	fmt.Println("made it past the flags!")
 	generateGCPNodeNames()
 
 	// print buildBoxesJenkinsToGCPNameMap
@@ -153,6 +151,7 @@ func main() {
 		disableAllBuildBoxes()
 	default:
 		autoScaling()
+		fmt.Println("made it past the autoscaling")
 	}
 }
 
