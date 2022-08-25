@@ -131,6 +131,7 @@ func main() {
 
 	// print buildBoxesLabelToJenkinsNameMap
 	fmt.Println("buildBoxesLabelToJenkinsNameMap:")
+	fmt.Println(buildBoxesLabelToJenkinsNameMap)
 
 	fmt.Println("jenkins boxes: ", buildBoxesPool)
 	fmt.Println("gcp boxes: ", gcpBoxesPool)
@@ -157,7 +158,6 @@ func main() {
 		disableAllBuildBoxes()
 	default:
 		autoScaling()
-		fmt.Println("made it past the autoscaling")
 	}
 }
 
