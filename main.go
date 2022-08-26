@@ -200,10 +200,6 @@ func validateFlags() {
 		log.Println("jenkinsUsername flag should not be empty")
 		valid = false
 	}
-	if !(*osJobType == "lin" || *osJobType == "win") {
-		log.Println("osJobType should be lin or win only")
-		valid = false
-	}
 
 	if !valid {
 		os.Exit(1)
@@ -212,29 +208,38 @@ func validateFlags() {
 
 func autoScaling() {
 	for {
-		queueSize := fetchQueueSize()
-		queueSize = adjustQueueSizeDependingWhetherJobRequiringAllNodesIsRunning(queueSize)
-		log.Printf("%d jobs waiting to be executed\n", queueSize)
-		//if queueSize > 0 {
-		//	log.Printf("%d jobs waiting to be executed\n", queueSize)
-		//	enableMoreNodes(queueSize)
-		//} else if queueSize == 0 {
-		//	log.Println("No jobs in the queue")
-		//	disableUnnecessaryBuildBoxes()
-		//}
+		for key, value := range buildBoxesLabelToJenkinsNameMap {
+			// value = ["buildBoxName1", "buildBoxName2", ...] (slice of Jenkins build box names),
+			// key = label of build box
+			fmt.Println(key, ":", value)
 
-		log.Println("Iteration finished")
-		fmt.Println("")
+			queueSize := fetchQueueSize(key)
+			queueSize = adjustQueueSizeDependingWhetherJobRequiringAllNodesIsRunning(queueSize, key)
+
+			// !log.Printf("%d jobs waiting to be executed\n", queueSize)
+			if queueSize > 0 {
+				log.Printf("%d jobs waiting to be executed\n", queueSize)
+				enableMoreNodes(queueSize, key)
+			} else if queueSize == 0 {
+				log.Println("No jobs in the queue")
+				disableUnnecessaryBuildBoxes(key)
+			}
+
+			log.Println("Iteration finished")
+			fmt.Println("using label: ", key)
+
+		}
 		time.Sleep(time.Second * 8)
 	}
+
 }
 
-func enableMoreNodes(queueSize int) {
+func enableMoreNodes(queueSize int, label string) {
 	boxesNeeded := calculateNumberOfNodesToEnable(queueSize)
 	log.Println("Checking if any box is offline")
 	var wg sync.WaitGroup
-	buildBoxesPool = shuffle(buildBoxesPool)
-	for _, buildBox := range buildBoxesPool {
+	// buildBoxesJenkinsToGCPNameMap[label] = shuffle(buildBoxesLabelToJenkinsNameMap[label])
+	for _, buildBox := range buildBoxesLabelToJenkinsNameMap[label] {
 		if isNodeOffline(buildBox) {
 			wg.Add(1)
 			go func(b string) {
@@ -248,6 +253,7 @@ func enableMoreNodes(queueSize int) {
 			wg.Wait()
 			return
 		}
+
 	}
 	wg.Wait()
 	log.Println("No more build boxes available to start")
@@ -305,15 +311,17 @@ func startCloudBox(buildBox string) {
 }
 
 func calculateNumberOfNodesToEnable(queueSize int) int {
+
 	mod := 0
 	if queueSize%(*workersPerBuildBox) != 0 {
+		// if queueSize is not divisible by workersPerBuildBox, then add 1 to the number of build boxes needed
 		mod = 1
 	}
 
 	return (queueSize / *workersPerBuildBox) + mod
 }
 
-func disableUnnecessaryBuildBoxes() {
+func disableUnnecessaryBuildBoxes(label string) {
 	var buildBoxToKeepOnline string
 	other := "box"
 	if isWorkingHour() {
@@ -323,7 +331,7 @@ func disableUnnecessaryBuildBoxes() {
 
 	log.Printf("Checking if any %s is enabled and idle", other)
 	var wg sync.WaitGroup
-	for _, buildBox := range buildBoxesPool {
+	for _, buildBox := range buildBoxesLabelToJenkinsNameMap[label] {
 		if buildBoxToKeepOnline != buildBox {
 			wg.Add(1)
 			go func(b string) {
@@ -561,7 +569,7 @@ func fetchNodeInfo(buildBox string) JenkinsBuildBoxInfo {
 	return data
 }
 
-func adjustQueueSizeDependingWhetherJobRequiringAllNodesIsRunning(queueSize int) int {
+func adjustQueueSizeDependingWhetherJobRequiringAllNodesIsRunning(queueSize int, label string) int {
 	if *jobNameRequiringAllNodes == "" {
 		return queueSize
 	}
@@ -580,13 +588,13 @@ func adjustQueueSizeDependingWhetherJobRequiringAllNodesIsRunning(queueSize int)
 		lastSeenBuildNumber = data.NextBuildNumber
 
 		log.Printf("Detected %s job, enable the whole pool\n", *jobNameRequiringAllNodes)
-		return *workersPerBuildBox * len(buildBoxesPool)
+		return *workersPerBuildBox * len(buildBoxesLabelToJenkinsNameMap[label])
 	}
 
 	return queueSize
 }
 
-func fetchQueueSize() int {
+func fetchQueueSize(label string) int {
 	resp, err := jenkinsRequest("GET", "/queue/api/json")
 	defer closeResponseBody(resp)
 	if err != nil {
@@ -603,9 +611,9 @@ func fetchQueueSize() int {
 	}
 	counter := 0
 	for _, i := range data.Items {
-		if i.Buildable && !strings.HasPrefix(i.Why, "There are no nodes with the label") {
+		if i.Buildable && !strings.HasPrefix(i.Why, "there are no nodes with the label") {
 			log.Printf("Job's Why statement (api/json): %s\n", i.Why)
-			if strings.Contains(i.Why, *osJobType) && strings.Contains(i.Why, "Waiting for next available executor on") {
+			if strings.Contains(i.Why, label) && (strings.Contains(i.Why, "Waiting for next available executor on") || strings.Contains(i.Why, "All nodes of label")) {
 				counter = counter + 1
 			}
 		}
