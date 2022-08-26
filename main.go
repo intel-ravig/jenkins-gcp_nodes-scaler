@@ -207,11 +207,12 @@ func validateFlags() {
 }
 
 func autoScaling() {
-	for key, value := range buildBoxesLabelToJenkinsNameMap {
-		// value = ["buildBoxName1", "buildBoxName2", ...] (slice of Jenkins build box names),
-		// key = label of build box
-		fmt.Println(key, ":", value)
-		for {
+	for {
+		for key, value := range buildBoxesLabelToJenkinsNameMap {
+			// value = ["buildBoxName1", "buildBoxName2", ...] (slice of Jenkins build box names),
+			// key = label of build box
+			fmt.Println(key, ":", value)
+
 			queueSize := fetchQueueSize(key)
 			queueSize = adjustQueueSizeDependingWhetherJobRequiringAllNodesIsRunning(queueSize, key)
 
@@ -225,9 +226,10 @@ func autoScaling() {
 			}
 
 			log.Println("Iteration finished")
-			fmt.Println("")
-			time.Sleep(time.Second * 8)
+			fmt.Println("using label: ", key)
+
 		}
+		time.Sleep(time.Second * 8)
 	}
 
 }
