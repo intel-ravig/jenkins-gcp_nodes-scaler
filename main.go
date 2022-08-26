@@ -158,17 +158,30 @@ func main() {
 }
 
 func generateGCPNodeNames() {
+	/*
+		this function creates a map of build box names to GCP node names
+		format: buildBoxesJenkinsToGCPNameMap["buildBoxName"] = "gcpNodeName"
+
+		It also generates the map of labels to Jenkins build box names
+		in the form: boxLabels["label"] = ["buildBoxName1", "buildBoxName2", ...]
+	*/
 	buildBoxesJenkinsToGCPNameMap = make(map[string]string)
-	var buildBoxWithPrefix strings.Builder
-	for _, buildBox := range buildBoxesPool {
-		if *nodeNamePrefix != "" {
-			buildBoxWithPrefix.WriteString(*nodeNamePrefix)
-		}
-		buildBoxWithPrefix.WriteString(buildBox)
-		buildBoxesJenkinsToGCPNameMap[buildBox] = buildBoxWithPrefix.String()
-		buildBoxWithPrefix.Reset()
+
+	for i := 0; i <= len(buildBoxesPool)-1; i++ {
+		buildBoxesJenkinsToGCPNameMap[buildBoxesPool[i]] = gcpBoxesPool[i]
+	}
+	fmt.Println("jenkins boxes: ", buildBoxesPool)
+	fmt.Println("gcp boxes: ", gcpBoxesPool)
+	fmt.Println("box labels: ", boxLabels)
+
+	buildBoxesLabelToJenkinsNameMap = make(map[string][]string)
+	for i := 0; i <= len(boxLabels)-1; i++ {
+		buildBoxesLabelToJenkinsNameMap[boxLabels[i]] = append(buildBoxesLabelToJenkinsNameMap[boxLabels[i]], buildBoxesPool[i])
+		// fmt.Println(buildBoxesLabelToJenkinsNameMap)
+
 	}
 }
+
 func validateFlags() {
 	valid := true
 	if *gceProjectName == "" {
