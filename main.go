@@ -8,18 +8,33 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
-	"golang.org/x/net/context"
-	"golang.org/x/oauth2/google"
-	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/option"
-	"google.golang.org/api/transport"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
+
+	"golang.org/x/net/context"
+	"golang.org/x/oauth2/google"
+	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/option"
+	"google.golang.org/api/transport"
 )
+
+type stringSlice []string
+
+func (i *stringSlice) String() string {
+	// this is the string representation of the flag's value, part of the flag.Value interface
+	return fmt.Sprintf("%d", *i)
+}
+
+func (i *stringSlice) Set(value string) error {
+	// this is the function that is called when the flag is parsed, part of the flag.Value interface
+	fmt.Printf("%s", value)
+	*i = append(*i, value)
+	return nil
+}
 
 type JenkinsQueue struct {
 	Items []struct {
@@ -57,10 +72,14 @@ var preferredNodeToKeepOnline *string
 var nodeNamePrefix *string
 var osLabel *string
 
-var buildBoxesPool = []string{}
-var buildBoxesJenkinsToGCPNameMap map[string]string
 var httpClient = &http.Client{}
 var service *compute.Service
+
+var buildBoxesPool stringSlice
+var gcpBoxesPool stringSlice
+var boxLabels stringSlice
+var buildBoxesJenkinsToGCPNameMap map[string]string
+var buildBoxesLabelToJenkinsNameMap map[string][]string
 
 var lastSeenBuildNumber int
 
@@ -90,22 +109,32 @@ func main() {
 	preferredNodeToKeepOnline = flag.String("preferredNodeToKeepOnline", "", "name of the node that should be kept online")
 	nodeNamePrefix = flag.String("nodeNamePrefix", "", "Common prefix for node names passed")
 	osLabel = flag.String("osLabel", "win", "OS Label to distinguish which OS is running - win/lin")
+
+	flag.Var(&buildBoxesPool, "jenkins", "jenkins boxes")
+	flag.Var(&gcpBoxesPool, "gcp", "gcp boxes")
+	flag.Var(&boxLabels, "labels", "box labels")
+
 	flag.Parse()
 
 	validateFlags()
 
 	// Force 'lin' to be 'skx' as dictated in Jenkins Job
-	if *osJobType == "lin" {
-		osJobType = "skx"
+	if *osLabel == "lin" {
+		*osLabel = "skx"
 	}
 
-	if len(flag.Args()) == 0 {
-		log.Println("At least one node name has to be specified")
-		os.Exit(1)
-	}
-
-	buildBoxesPool = flag.Args()
 	generateGCPNodeNames()
+
+	// print buildBoxesJenkinsToGCPNameMap
+	fmt.Println("buildBoxesJenkinsToGCPNameMap:")
+	fmt.Println(buildBoxesJenkinsToGCPNameMap)
+
+	// print buildBoxesLabelToJenkinsNameMap
+	fmt.Println("buildBoxesLabelToJenkinsNameMap:")
+	fmt.Println(buildBoxesLabelToJenkinsNameMap)
+	for key, value := range buildBoxesLabelToJenkinsNameMap {
+		fmt.Println(key, ":", value)
+	}
 
 	var err error
 	if *localCreds {
