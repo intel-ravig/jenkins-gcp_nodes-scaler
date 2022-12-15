@@ -617,7 +617,7 @@ func fetchQueueSize(label string) int {
 			// check := fmt.Sprintf("\"%s\" is offline", label)
 			check := fmt.Sprintf("All nodes of label \"'%s'\" are offline", label)
 			check2 := fmt.Sprintf("Waiting for next available executor on '%s'", label)
-			check3 := fmt.Sprintf("doesn't have label '%s'", label)
+			check3 := fmt.Sprintf("doesn’t have label ’%s’", label)
 
 			// Q: what is the i.Why string format?
 
