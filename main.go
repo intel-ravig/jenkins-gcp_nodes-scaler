@@ -614,14 +614,11 @@ func fetchQueueSize(label string) int {
 		if i.Buildable && !strings.HasPrefix(i.Why, "there are no nodes with the label") {
 			log.Printf("Job's Why statement (api/json): %s\n", i.Why)
 
-			// check := fmt.Sprintf("\"%s\" is offline", label)
 			check := fmt.Sprintf("All nodes of label \"'%s'\" are offline", label)
 			check2 := fmt.Sprintf("Waiting for next available executor on '%s'", label)
-			check3 := fmt.Sprintf("doesn’t have label ’%s’", label)
+			// doesn’t have label skx’
+			check3 := fmt.Sprintf("doesn’t have label ‘%s’", label)
 
-			// Q: what is the i.Why string format?
-
-			// check if i.Why contains check, check2 or check3
 			if strings.Contains(i.Why, check) || strings.Contains(i.Why, check2) || strings.Contains(i.Why, check3) {
 				log.Printf("LOG: Need to allocate a new node of label %s\n", label)
 				counter = counter + 1
