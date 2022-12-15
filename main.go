@@ -621,10 +621,12 @@ func fetchQueueSize(label string) int {
 
 			// Q: what is the i.Why string format?
 
-			if strings.Contains(i.Why, label) && (strings.Contains(i.Why, check2) || strings.Contains(i.Why, check) || strings.Contains(i.Why, check3)) {
+			// check if i.Why contains check, check2 or check3
+			if strings.Contains(i.Why, check) || strings.Contains(i.Why, check2) || strings.Contains(i.Why, check3) {
 				log.Printf("LOG: Need to allocate a new node of label %s\n", label)
 				counter = counter + 1
 			}
+
 		}
 	}
 
