@@ -613,9 +613,18 @@ func fetchQueueSize(label string) int {
 	for _, i := range data.Items {
 		if i.Buildable && !strings.HasPrefix(i.Why, "there are no nodes with the label") {
 			log.Printf("Job's Why statement (api/json): %s\n", i.Why)
-			if strings.Contains(i.Why, label) && (strings.Contains(i.Why, "Waiting for next available executor on") || strings.Contains(i.Why, "All nodes of label") || strings.Contains(i.Why, "is offline")) {
+
+			check := fmt.Sprintf("All nodes of label \"'%s'\" are offline", label)
+			check2 := fmt.Sprintf("Waiting for next available executor on '%s'", label)
+			// doesn’t have label skx’
+			check3 := fmt.Sprintf("doesn’t have label ‘%s’", label)
+			check4 := fmt.Sprintf("‘%s’ is offline", label)
+
+			if strings.Contains(i.Why, check) || strings.Contains(i.Why, check2) || strings.Contains(i.Why, check3) || strings.Contains(i.Why, check4) {
+				log.Printf("LOG: Need to allocate a new node of label %s\n", label)
 				counter = counter + 1
 			}
+
 		}
 	}
 
